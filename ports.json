@@ -1,0 +1,14 @@
+[
+  {
+    "name": "高雄港",
+    "berthUtilization": 91,
+    "waitingShips": 7,
+    "status": "繁忙"
+  },
+  {
+    "name": "臺中港",
+    "berthUtilization": 65,
+    "waitingShips": 1,
+    "status": "正常"
+  }
+]

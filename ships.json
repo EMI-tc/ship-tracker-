@@ -1,0 +1,38 @@
+[
+  {
+    "imo": "9247458",
+    "name": "HUA HANG 6",
+    "callsign": "BVAQ6",
+    "flag": "Taiwan",
+    "type": "Bulk Carrier",
+    "destination": "Kaohsiung, Taiwan",
+    "eta": "2026-05-06 08:00",
+    "status": "Sailing",
+    "lat": 25.0478,
+    "lng": 121.7331
+  },
+  {
+    "imo": "9304573",
+    "name": "DA SHAN",
+    "callsign": "BVRM8",
+    "flag": "Taiwan",
+    "type": "Bulk Carrier",
+    "destination": "Keelung, Taiwan",
+    "eta": "2026-05-06 14:30",
+    "status": "At Anchor",
+    "lat": 25.1500,
+    "lng": 121.7400
+  },
+  {
+    "imo": "9412356",
+    "name": "FU HANG",
+    "callsign": "BVSN5",
+    "flag": "Taiwan",
+    "type": "Bulk Carrier",
+    "destination": "Taichung, Taiwan",
+    "eta": "2026-05-05 22:00",
+    "status": "In Port",
+    "lat": 24.1478,
+    "lng": 120.6736
+  }
+]
