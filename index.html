@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧港口船舶追蹤系統</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+</head>
+<body>
+    <header>
+        <h1>智慧港口船舶追蹤系統</h1>
+        <p>即時監控船舶動態與港口狀況</p>
+    </header>
+    <main>
+        <section class="controls">
+            <label for="ship-select">選擇船舶:</label>
+            <select id="ship-select">
+                <option value="">-- 請選擇船舶 --</option>
+            </select>
+            <button id="refresh-btn">刷新資料</button>
+            <button id="toggle-auto">自動更新: <span id="auto-status">關閉</span></button>
+        </section>
+        <div id="ship-list"></div>
+        
+        <section class="ship-info">
+            <div id="ship-detail">
+                <h2>船舶資訊</h2>
+                <p id="ship-name">船名: --</p>
+                <p id="imo">IMO編號: --</p>
+                <p id="call-sign">呼號: --</p>
+                <p id="flag">船籍: --</p>
+                <p id="ship-type">船型: --</p>
+                <p id="destination">目的地: --</p>
+                <p id="eta">預計到達時間: --</p>
+                <p id="status">目前狀態: --</p>
+            </div>
+            <div id="map-container">
+                <h2>船舶位置</h2>
+                <div id="map">地圖載入中...</div>
+            </div>
+        </section>
+        
+        <section class="ports-status">
+            <h2>港口狀況</h2>
+            <div id="ports-list">
+                <!-- 港口資訊將動態填入 -->
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>資料來源: AIS 整合服務 © 2026 智慧港口系統</p>
+    </footer>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+[
+  {
+    "name": "高雄港",
+    "location": { "lat": 22.6163, "lng": 120.2871 },
+    "berthUtilization": 85,
+    "waitingShips": 5,
+    "status": "正常",
+    "congestion": "moderate"
+  },
+  {
+    "name": "基隆港",
+    "location": { "lat": 25.1333, "lng": 121.75 },
+    "berthUtilization": 72,
+    "waitingShips": 2,
+    "status": "暢通",
+    "congestion": "low"
+  },
+  {
+    "name": "臺中港",
+    "location": { "lat": 24.2867, "lng": 120.5183 },
+    "berthUtilization": 65,
+    "waitingShips": 1,
+    "status": "暢通",
+    "congestion": "low"
+  },
+  {
+    "name": "台北港",
+    "location": { "lat": 25.1794, "lng": 121.3094 },
+    "berthUtilization": 58,
+    "waitingShips": 1,
+    "status": "暢通",
+    "congestion": "low"
+  }
+]
