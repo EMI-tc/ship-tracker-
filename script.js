@@ -40,6 +40,22 @@ function debugLog(msg) {
 function initMap() {
   debugLog('Initializing map...');
   try {
+    // Check if Leaflet is loaded
+    if (typeof L === 'undefined') {
+      debugLog('ERROR: Leaflet (L) is not defined! Library may have failed to load.');
+      // Try to show a helpful message
+      const mapContainer = document.getElementById('map');
+      if (mapContainer) {
+        mapContainer.innerHTML = `<div style="padding:20px;text-align:center;color:red;background:#fff8f8;border:1px solid #fcc;">
+          地圖庫載入失敗<br/>
+          請檢查網路連線或稍後再試<br/>
+          <small>技術細節: L is undefined</small>
+        </div>`;
+      }
+      return;
+    }
+    debugLog('Leaflet library found');
+    
     // Check if map container exists
     const mapContainer = document.getElementById('map');
     if (!mapContainer) {
