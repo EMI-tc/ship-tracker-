@@ -4,7 +4,7 @@ let ports = [];
 let map = null;
 let shipMarker = null;
 let autoUpdateInterval = null;
-const UPDATE_INTERVAL = 30000; // 30 seconds
+const UPDATE_INTERVAL = 180000; // 3 minutes (minimum to avoid blocking)
 let isUsingMockData = true; // Tracks actual data source being used
 
 // Debug div
