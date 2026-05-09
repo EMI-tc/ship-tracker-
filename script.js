@@ -12,28 +12,46 @@ const API_CONFIG = {
   mockData: './ships.json'            // 直接讀取靜態 JSON
 };
 
+// Debug div
+let debugDiv = null;
+function initDebug() {
+  debugDiv = document.createElement('div');
+  debugDiv.id = 'debug';
+  debugDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:100px;background:rgba(0,0,0,0.7);color:white;overflow:auto;pointer-events:none;z-index:9999;font-size:10px;padding:5px;';
+  document.body.appendChild(debugDiv);
+}
+function debugLog(msg) {
+  if (!debugDiv) return;
+  const now = new Date();
+  const time = now.toLocaleTimeString();
+  debugDiv.textContent += `[${time}] ${msg}\n`;
+  debugDiv.scrollTop = debugDiv.scrollHeight;
+}
+
 // Initialize map
 function initMap() {
+  debugLog('Initializing map');
   map = L.map('map').setView([25.0330, 121.5654], 10); // Default to Taipei
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
+  debugLog('Map initialized');
 }
 
 // Fetch ships data (directly from mock JSON)
 async function fetchShips() {
-  console.log('[Ships] Starting fetch...');
+  debugLog('[Ships] Starting fetch...');
   try {
     showLoading('ship-list');
     
     // Directly fetch from mock JSON
     const response = await fetch('./ships.json');
-    if (!response.ok) throw new Error('Failed to fetch ships data');
+    if (!response.ok) throw new Error('Failed to fetch ships data: ' + response.status);
     
     const shipsData = await response.json();
     ships = shipsData;
     isUsingMockData = true;
-    console.log(`[Ships] Using local mock JSON, count: ${shipsData.length}`);
+    debugLog(`[Ships] Using local mock JSON, count: ${shipsData.length}`);
     
     renderShipList();
     updateDataSourceIndicator();
@@ -48,10 +66,11 @@ async function fetchShips() {
       }
     }
     hideLoading('ship-list');
-    console.log('[Ships] Done. Ships count:', ships.length);
+    debugLog('[Ships] Done. Ships count:', ships.length);
   } catch (error) {
     console.error('Error fetching ships:', error);
     showError('ship-list', '載入船舶資料失敗: ' + error.message);
+    debugLog('[Ships] Error: ' + error.message);
     hideLoading('ship-list');
   }
 }
@@ -59,27 +78,31 @@ async function fetchShips() {
 // Fetch ports data (directly from mock JSON)
 async function fetchPorts() {
   try {
+    debugLog('[Ports] Starting fetch...');
     showLoading('ports-list');
     
     // Directly fetch from mock JSON
     const response = await fetch('./ports.json');
-    if (!response.ok) throw new Error('Failed to fetch ports data');
+    if (!response.ok) throw new Error('Failed to fetch ports data: ' + response.status);
     
     const portsData = await response.json();
     ports = portsData;
-    console.log(`[Ports] Using local mock JSON, count: ${portsData.length}`);
+    debugLog(`[Ports] Using local mock JSON, count: ${portsData.length}`);
     
     renderPorts();
     hideLoading('ports-list');
+    debugLog('[Ports] Done.');
   } catch (error) {
     console.error('Error fetching ports:', error);
     showError('ports-list', '載入港口資料失敗: ' + error.message);
+    debugLog('[Ports] Error: ' + error.message);
     hideLoading('ports-list');
   }
 }
 
 // Render ship list in dropdown
 function renderShipList() {
+  debugLog('[ShipList] Rendering ship list');
   const shipSelect = document.getElementById('ship-select');
   shipSelect.innerHTML = '<option value="">-- 請選擇船舶 --</option>';
   ships.forEach(ship => {
@@ -88,12 +111,17 @@ function renderShipList() {
     option.textContent = `${ship.name} (${ship.imo})`;
     shipSelect.appendChild(option);
   });
+  debugLog(`[ShipList] Rendered ${ships.length} ships`);
 }
 
 // Show ship detail and update map
 function showShipDetail(imo) {
+  debugLog(`[ShowDetail] Showing ship ${imo}`);
   const ship = ships.find(s => s.imo === imo);
-  if (!ship) return;
+  if (!ship) {
+    debugLog(`[ShowDetail] Ship ${imo} not found`);
+    return;
+  }
 
   // Update ship info
   document.getElementById('ship-name').textContent = `船名: ${ship.name}`;
@@ -107,6 +135,7 @@ function showShipDetail(imo) {
 
   // Update map
   if (map) {
+    debugLog(`[ShowDetail] Updating map for ship at (${ship.lat}, ${ship.lng})`);
     // Update existing marker or create new one
     if (shipMarker) {
       // Update position and popup without removing/re-adding
@@ -122,10 +151,12 @@ function showShipDetail(imo) {
     // Center map on ship
     map.setView([ship.lat, ship.lng], 12);
   }
+  debugLog(`[ShowDetail] Done`);
 }
 
 // Render ports status
 function renderPorts() {
+  debugLog('[Ports] Rendering ports');
   const portsList = document.getElementById('ports-list');
   if (!portsList) return;
   
@@ -154,6 +185,7 @@ function renderPorts() {
     `;
     portsList.appendChild(portCard);
   });
+  debugLog(`[Ports] Rendered ${ports.length} ports`);
 }
 
 // Update data source indicator in UI
@@ -194,22 +226,26 @@ function hideLoading(elementId) {
 
 // Event listeners
 function setupEventListeners() {
+  debugLog('[Setup] Setting up event listeners');
   const shipSelect = document.getElementById('ship-select');
   shipSelect.addEventListener('change', (e) => {
     const imo = e.target.value;
     if (imo) {
+      debugLog(`[ShipSelect] Changed to ${imo}`);
       showShipDetail(imo);
     }
   });
 
   const refreshBtn = document.getElementById('refresh-btn');
   refreshBtn.addEventListener('click', () => {
+    debugLog('[RefreshBtn] Clicked');
     fetchShips();
     fetchPorts();
   });
 
   const toggleAutoBtn = document.getElementById('toggle-auto');
   toggleAutoBtn.addEventListener('click', () => {
+    debugLog('[ToggleAuto] Clicked');
     if (autoUpdateInterval) {
       clearInterval(autoUpdateInterval);
       autoUpdateInterval = null;
@@ -226,10 +262,13 @@ function setupEventListeners() {
 
 // Initialize
 function init() {
+  debugLog('[Init] Starting');
+  initDebug();
   initMap();
   fetchShips();
   fetchPorts();
   setupEventListeners();
+  debugLog('[Init] Done');
 }
 
 // Start when DOM loaded
