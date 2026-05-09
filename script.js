@@ -7,17 +7,12 @@ let autoUpdateInterval = null;
 const UPDATE_INTERVAL = 30000; // 30 seconds
 let isUsingMockData = true; // Tracks actual data source being used
 
-// Data configuration (using mock data directly for GitHub Pages deployment)
-const API_CONFIG = {
-  mockData: './ships.json'            // 直接讀取靜態 JSON
-};
-
 // Debug div
 let debugDiv = null;
 function initDebug() {
   debugDiv = document.createElement('div');
   debugDiv.id = 'debug';
-  debugDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:100px;background:rgba(0,0,0,0.7);color:white;overflow:auto;pointer-events:none;z-index:9999;font-size:10px;padding:5px;';
+  debugDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;height:120px;background:rgba(0,0,0,0.8);color:#0f0;overflow:auto;pointer-events:none;z-index:9999;font-family:monospace;font-size:11px;padding:5px;';
   document.body.appendChild(debugDiv);
 }
 function debugLog(msg) {
@@ -25,17 +20,56 @@ function debugLog(msg) {
   const now = new Date();
   const time = now.toLocaleTimeString();
   debugDiv.textContent += `[${time}] ${msg}\n`;
+  // Keep only last 20 lines
+  const lines = debugDiv.textContent.split('\n').slice(-20);
+  debugDiv.textContent = lines.join('\n');
   debugDiv.scrollTop = debugDiv.scrollHeight;
 }
 
-// Initialize map
+// Initialize map with error handling
 function initMap() {
-  debugLog('Initializing map');
-  map = L.map('map').setView([25.0330, 121.5654], 10); // Default to Taipei
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-  }).addTo(map);
-  debugLog('Map initialized');
+  debugLog('Initializing map...');
+  try {
+    // Check if map container exists
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) {
+      debugLog('ERROR: Map container not found!');
+      return;
+    }
+    debugLog('Map container found');
+    
+    // Initialize Leaflet map
+    map = L.map('map', {
+      preferCanvas: true // Better performance on mobile
+    }).setView([25.0330, 121.5654], 10); // Default to Taipei
+    
+    debugLog('Leaflet map object created');
+    
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors',
+      maxZoom: 18
+    }).addTo(map);
+    
+    debugLog('Tile layer added');
+    
+    // Test if map is working
+    if (map) {
+      debugLog(`Map initialized successfully. Size: ${map.getSize().x}x${map.getSize().y}`);
+    } else {
+      debugLog('ERROR: Map object is null after initialization');
+    }
+  } catch (e) {
+    debugLog(`ERROR initializing map: ${e.message}`);
+    console.error('Map initialization error:', e);
+    // Show error on map container
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+      mapContainer.innerHTML = `<div style="padding:20px;text-align:center;color:red;">
+        地圖載入失敗<br/>${e.message}
+      </div>`;
+    }
+  }
 }
 
 // Fetch ships data (directly from mock JSON)
@@ -104,6 +138,10 @@ async function fetchPorts() {
 function renderShipList() {
   debugLog('[ShipList] Rendering ship list');
   const shipSelect = document.getElementById('ship-select');
+  if (!shipSelect) {
+    debugLog('ERROR: Ship select element not found');
+    return;
+  }
   shipSelect.innerHTML = '<option value="">-- 請選擇船舶 --</option>';
   ships.forEach(ship => {
     const option = document.createElement('option');
@@ -124,14 +162,18 @@ function showShipDetail(imo) {
   }
 
   // Update ship info
-  document.getElementById('ship-name').textContent = `船名: ${ship.name}`;
-  document.getElementById('imo').textContent = `IMO編號: ${ship.imo}`;
-  document.getElementById('call-sign').textContent = `呼號: ${ship.callsign}`;
-  document.getElementById('flag').textContent = `船籍: ${ship.flag}`;
-  document.getElementById('ship-type').textContent = `船型: ${ship.type}`;
-  document.getElementById('destination').textContent = `目的地: ${ship.destination}`;
-  document.getElementById('eta').textContent = `預計到達時間: ${ship.eta}`;
-  document.getElementById('status').textContent = `目前狀態: ${ship.status}`;
+  try {
+    document.getElementById('ship-name').textContent = `船名: ${ship.name}`;
+    document.getElementById('imo').textContent = `IMO編號: ${ship.imo}`;
+    document.getElementById('call-sign').textContent = `呼號: ${ship.callsign}`;
+    document.getElementById('flag').textContent = `船籍: ${ship.flag}`;
+    document.getElementById('ship-type').textContent = `船型: ${ship.type}`;
+    document.getElementById('destination').textContent = `目的地: ${ship.destination}`;
+    document.getElementById('eta').textContent = `預計到達時間: ${ship.eta}`;
+    document.getElementById('status').textContent = `目前狀態: ${ship.status}`;
+  } catch (e) {
+    debugLog(`[ShowDetail] Error updating ship info: ${e.message}`);
+  }
 
   // Update map
   if (map) {
@@ -149,7 +191,14 @@ function showShipDetail(imo) {
         .openPopup();
     }
     // Center map on ship
-    map.setView([ship.lat, ship.lng], 12);
+    try {
+      map.setView([ship.lat, ship.lng], 12);
+      debugLog('[ShowDetail] Map view updated');
+    } catch (e) {
+      debugLog(`[ShowDetail] Error setting map view: ${e.message}`);
+    }
+  } else {
+    debugLog('[ShowDetail] Map is not initialized');
   }
   debugLog(`[ShowDetail] Done`);
 }
@@ -158,7 +207,10 @@ function showShipDetail(imo) {
 function renderPorts() {
   debugLog('[Ports] Rendering ports');
   const portsList = document.getElementById('ports-list');
-  if (!portsList) return;
+  if (!portsList) {
+    debugLog('ERROR: Ports list element not found');
+    return;
+  }
   
   portsList.innerHTML = '';
   
@@ -228,36 +280,44 @@ function hideLoading(elementId) {
 function setupEventListeners() {
   debugLog('[Setup] Setting up event listeners');
   const shipSelect = document.getElementById('ship-select');
-  shipSelect.addEventListener('change', (e) => {
-    const imo = e.target.value;
-    if (imo) {
-      debugLog(`[ShipSelect] Changed to ${imo}`);
-      showShipDetail(imo);
-    }
-  });
+  if (shipSelect) {
+    shipSelect.addEventListener('change', (e) => {
+      const imo = e.target.value;
+      if (imo) {
+        debugLog(`[ShipSelect] Changed to ${imo}`);
+        showShipDetail(imo);
+      }
+    });
+  } else {
+    debugLog('ERROR: Ship select element not found for event listener');
+  }
 
   const refreshBtn = document.getElementById('refresh-btn');
-  refreshBtn.addEventListener('click', () => {
-    debugLog('[RefreshBtn] Clicked');
-    fetchShips();
-    fetchPorts();
-  });
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      debugLog('[RefreshBtn] Clicked');
+      fetchShips();
+      fetchPorts();
+    });
+  }
 
   const toggleAutoBtn = document.getElementById('toggle-auto');
-  toggleAutoBtn.addEventListener('click', () => {
-    debugLog('[ToggleAuto] Clicked');
-    if (autoUpdateInterval) {
-      clearInterval(autoUpdateInterval);
-      autoUpdateInterval = null;
-      toggleAutoBtn.innerHTML = '自動更新: <span id="auto-status">關閉</span>';
-    } else {
-      autoUpdateInterval = setInterval(() => {
-        fetchShips();
-        fetchPorts();
-      }, UPDATE_INTERVAL);
-      toggleAutoBtn.innerHTML = `自動更新: <span id="auto-status">開啟 (${UPDATE_INTERVAL/1000}s)</span>`;
-    }
-  });
+  if (toggleAutoBtn) {
+    toggleAutoBtn.addEventListener('click', () => {
+      debugLog('[ToggleAuto] Clicked');
+      if (autoUpdateInterval) {
+        clearInterval(autoUpdateInterval);
+        autoUpdateInterval = null;
+        toggleAutoBtn.innerHTML = '自動更新: <span id="auto-status">關閉</span>';
+      } else {
+        autoUpdateInterval = setInterval(() => {
+          fetchShips();
+          fetchPorts();
+        }, UPDATE_INTERVAL);
+        toggleAutoBtn.innerHTML = `自動更新: <span id="auto-status">開啟 (${UPDATE_INTERVAL/1000}s)</span>`;
+      }
+    });
+  }
 }
 
 // Initialize
@@ -272,4 +332,27 @@ function init() {
 }
 
 // Start when DOM loaded
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  debugLog('DOM Content Loaded');
+  init();
+});
+
+// Handle page visibility changes
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    debugLog('[Page] Hidden');
+  } else {
+    debugLog('[Page] Visible');
+  }
+});
+
+// Global error handler
+window.addEventListener('error', (e) => {
+  debugLog(`[GLOBAL ERROR] ${e.message}`);
+  console.error('Global error:', e);
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  debugLog(`[PROMISE ERROR] ${e.reason.message}`);
+  console.error('Unhandled promise rejection:', e.reason);
+});
