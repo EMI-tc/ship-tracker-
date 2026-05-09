@@ -7,10 +7,9 @@ let autoUpdateInterval = null;
 const UPDATE_INTERVAL = 30000; // 30 seconds
 let isUsingMockData = true; // Tracks actual data source being used
 
-// Backend API configuration (hybrid: Marinesia API + fallback to mock)
+// Data configuration (using mock data directly for GitHub Pages deployment)
 const API_CONFIG = {
-  backend: 'http://localhost:3000',  // 本地後端 API
-  mockData: './ships.json'            // 最後備用：直接讀取靜態 JSON
+  mockData: './ships.json'            // 直接讀取靜態 JSON
 };
 
 // Initialize map
@@ -21,47 +20,21 @@ function initMap() {
   }).addTo(map);
 }
 
-// Fetch ships data (hybrid: try backend API first, fallback to mock JSON)
+// Fetch ships data (directly from mock JSON)
 async function fetchShips() {
   console.log('[Ships] Starting fetch...');
   try {
     showLoading('ship-list');
     
-    let shipsData;
-    let usedMock = false;
+    // Directly fetch from mock JSON
+    const response = await fetch('./ships.json');
+    if (!response.ok) throw new Error('Failed to fetch ships data');
     
-    // Step 1: Try backend API (which handles Marinesia API + fallback)
-    try {
-      console.log('[Ships] Calling backend API...');
-      const response = await fetch(`${API_CONFIG.backend}/api/ships`);
-      console.log('[Ships] Response received:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`Backend API failed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      console.log('[Ships] Data parsed:', data);
-      shipsData = data.ships || data.vessels || [];
-      usedMock = data.source === 'mock';
-      console.log(`[Ships] Fetched from ${data.source || 'unknown'}, count: ${shipsData.length}`);
-    } catch (apiError) {
-      console.warn('[Ships] Backend unavailable, trying local JSON:', apiError.message);
-      
-      // Step 2: Fallback to local mock JSON
-      try {
-        const mockResponse = await fetch('./ships.json');
-        if (!mockResponse.ok) throw new Error('Failed to fetch mock ships data');
-        shipsData = await mockResponse.json();
-        usedMock = true;
-        console.log('[Ships] Using local mock JSON');
-      } catch (jsonError) {
-        throw new Error('無法取得船舶資料: ' + jsonError.message);
-      }
-    }
-    
+    const shipsData = await response.json();
     ships = shipsData;
-    isUsingMockData = usedMock;
+    isUsingMockData = true;
+    console.log(`[Ships] Using local mock JSON, count: ${shipsData.length}`);
+    
     renderShipList();
     updateDataSourceIndicator();
     
@@ -83,39 +56,19 @@ async function fetchShips() {
   }
 }
 
-// Fetch ports data (hybrid: try backend API first, fallback to mock JSON)
+// Fetch ports data (directly from mock JSON)
 async function fetchPorts() {
   try {
     showLoading('ports-list');
     
-    let portsData;
+    // Directly fetch from mock JSON
+    const response = await fetch('./ports.json');
+    if (!response.ok) throw new Error('Failed to fetch ports data');
     
-    // Step 1: Try backend API
-    try {
-      const response = await fetch(`${API_CONFIG.backend}/api/ports`);
-      
-      if (!response.ok) {
-        throw new Error(`Backend API failed: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      portsData = data.ports || [];
-      console.log(`[Ports] Fetched, count: ${portsData.length}`);
-    } catch (apiError) {
-      console.warn('[Ports] Backend unavailable, trying local JSON:', apiError.message);
-      
-      // Step 2: Fallback to local mock JSON
-      try {
-        const mockResponse = await fetch('./ports.json');
-        if (!mockResponse.ok) throw new Error('Failed to fetch mock ports data');
-        portsData = await mockResponse.json();
-        console.log('[Ports] Using local mock JSON');
-      } catch (jsonError) {
-        throw new Error('無法取得港口資料: ' + jsonError.message);
-      }
-    }
-    
+    const portsData = await response.json();
     ports = portsData;
+    console.log(`[Ports] Using local mock JSON, count: ${portsData.length}`);
+    
     renderPorts();
     hideLoading('ports-list');
   } catch (error) {
