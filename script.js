@@ -7,22 +7,9 @@ let autoUpdateInterval = null;
 const UPDATE_INTERVAL = 30000; // 30 seconds
 let isUsingMockData = true; // Tracks actual data source being used
 
-// API Configuration (replace with actual API keys when available)
+// Data configuration (using mock data directly for GitHub Pages deployment)
 const API_CONFIG = {
-  // Example for MarineTraffic API (requires subscription)
-  marinetraffic: {
-    baseUrl: 'https://services.marinetraffic.com/api/exportvessel/v:5',
-    // Note: In production, you would need a valid API key
-    // For demo purposes, we'll attempt without key and fall back to mock on failure
-    params: {
-      protocol: 'jsono',
-      timespan: '1',
-      ship_types: 'Cargo', // or more specific for bulk carriers
-      // Add bbox for Taiwan area to limit results: minLon,minLat,maxLon,maxLat
-      // Focused on Taichung Port (24.3N,120.5E) and Kaohsiung Port (22.6N,120.3E)
-      bbox: '120,22,121,25' // Waters around Taichung and Kaohsiung
-    }
-  }
+  mockData: './ships.json'            // 直接讀取靜態 JSON
 };
 
 // Initialize map
@@ -33,97 +20,60 @@ function initMap() {
   }).addTo(map);
 }
 
-// Fetch ships data (try real API first, fallback to mock)
+// Fetch ships data (directly from mock JSON)
 async function fetchShips() {
+  console.log('[Ships] Starting fetch...');
   try {
     showLoading('ship-list');
     
-    let shipsData;
-    let usedMock = false;
+    // Directly fetch from mock JSON
+    const response = await fetch('./ships.json');
+    if (!response.ok) throw new Error('Failed to fetch ships data');
     
-    // Try to fetch from real API (MarineTraffic example)
-    try {
-      const url = new URL(API_CONFIG.marinetraffic.baseUrl);
-      // Note: Without a valid API key, this will likely fail with 401/403
-      // In a real implementation, you would add: url.searchParams.set('key', API_KEY);
-      Object.entries(API_CONFIG.marinetraffic.params).forEach(([key, value]) => {
-        url.searchParams.set(key, value);
-      });
-      
-      const response = await fetch(url.toString());
-      
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-      
-      shipsData = await response.json();
-      usedMock = false;
-      console.log('Successfully fetched real AIS data');
-    } catch (apiError) {
-      console.warn('Failed to fetch real AIS data, falling back to mock:', apiError);
-      // Fallback to mock data
-      const mockResponse = await fetch('ships.json');
-      if (!mockResponse.ok) throw new Error('Failed to fetch mock ships data');
-      shipsData = await mockResponse.json();
-      usedMock = true;
-    }
-    
+    const shipsData = await response.json();
     ships = shipsData;
-    isUsingMockData = usedMock;
+    isUsingMockData = true;
+    console.log(`[Ships] Using local mock JSON, count: ${shipsData.length}`);
+    
     renderShipList();
     updateDataSourceIndicator();
     
     if (ships.length > 0) {
       const shipSelect = document.getElementById('ship-select');
       if (shipSelect.value === '') {
-        // No ship selected, select first one
         shipSelect.value = ships[0].imo;
         showShipDetail(ships[0].imo);
       } else {
-        // Refresh currently selected ship (for auto-update)
         showShipDetail(shipSelect.value);
       }
     }
     hideLoading('ship-list');
+    console.log('[Ships] Done. Ships count:', ships.length);
   } catch (error) {
     console.error('Error fetching ships:', error);
-    showError('ship-list', '載入船舶資料失敗');
+    showError('ship-list', '載入船舶資料失敗: ' + error.message);
     hideLoading('ship-list');
   }
 }
 
-// Fetch ports data (try real API first, fallback to mock)
+// Fetch ports data (directly from mock JSON)
 async function fetchPorts() {
   try {
     showLoading('ports-list');
     
-    let portsData;
-    let usedMock = false;
+    // Directly fetch from mock JSON
+    const response = await fetch('./ports.json');
+    if (!response.ok) throw new Error('Failed to fetch ports data');
     
-    // Try to fetch real port data (if available)
-    // For demo, we'll try a simple approach: if we have ship data, we could derive port info
-    // But for simplicity, we'll fall back to mock since real-time port status APIs are less common
-    try {
-      // Attempt to fetch from a hypothetical port API
-      // In reality, you would substitute with actual port authority API
-      const portResponse = await fetch('https://api.example.com/ports/taiwan'); // Will fail
-      if (!portResponse.ok) throw new Error('Port API not available');
-      portsData = await portResponse.json();
-      usedMock = false;
-    } catch (portError) {
-      console.warn('Failed to fetch real port data, falling back to mock:', portError);
-      const mockResponse = await fetch('ports.json');
-      if (!mockResponse.ok) throw new Error('Failed to fetch mock ports data');
-      portsData = await mockResponse.json();
-      usedMock = true;
-    }
-    
+    const portsData = await response.json();
     ports = portsData;
+    console.log(`[Ports] Using local mock JSON, count: ${portsData.length}`);
+    
     renderPorts();
     hideLoading('ports-list');
   } catch (error) {
     console.error('Error fetching ports:', error);
-    showError('ports-list', '載入港口資料失敗');
+    showError('ports-list', '載入港口資料失敗: ' + error.message);
     hideLoading('ports-list');
   }
 }
@@ -177,28 +127,30 @@ function showShipDetail(imo) {
 // Render ports status
 function renderPorts() {
   const portsList = document.getElementById('ports-list');
+  if (!portsList) return;
+  
   portsList.innerHTML = '';
-  // Filter to only show Taichung and Kaohsiung ports
-  const filteredPorts = ports.filter(port => 
-    port.name === '臺中港' || port.name === '高雄港'
-  );
-  filteredPorts.forEach(port => {
+  
+  ports.forEach(port => {
     const portCard = document.createElement('div');
     portCard.className = 'port-card';
     
     // Determine status class for styling
     let statusClass = 'status-normal';
-    if (port.status.includes('繁忙') || port.status.includes('擁堵')) {
+    let statusSymbol = '🟡';
+    if (port.status && (port.status.includes('繁忙') || port.status.includes('擁堵') || port.congestion === 'high')) {
       statusClass = 'status-busy';
-    } else if (port.status.includes('暢通') || port.status.includes('良好')) {
+      statusSymbol = '🔴';
+    } else if (port.status && (port.status.includes('暢通') || port.status.includes('良好') || port.congestion === 'low')) {
       statusClass = 'status-good';
+      statusSymbol = '🟢';
     }
     
     portCard.innerHTML = `
-      <h3>${port.name}</h3>
-      <p><span>泊位使用率:</span> ${port.berthUtilization}%</p>
-      <p><span>等待船舶:</span> ${port.waitingShips} 艘</p>
-      <p><span>狀態:</span> <span class="status-indicator ${statusClass}">${port.status}</span></p>
+      <h3>${port.name} ${statusSymbol}</h3>
+      <p><span>泊位使用率:</span> ${port.berthUtilization || port.berthUtilization === 0 ? port.berthUtilization + '%' : 'N/A'}</p>
+      <p><span>等待船舶:</span> ${port.waitingShips || port.waitingShips === 0 ? port.waitingShips + ' 艘' : 'N/A'}</p>
+      <p><span>狀態:</span> <span class="status-indicator ${statusClass}">${port.status || '未知'}</span></p>
     `;
     portsList.appendChild(portCard);
   });
@@ -206,24 +158,19 @@ function renderPorts() {
 
 // Update data source indicator in UI
 function updateDataSourceIndicator() {
-  const indicator = document.createElement('div');
-  indicator.style.position = 'fixed';
-  indicator.style.bottom = '10px';
-  indicator.style.right = '10px';
-  indicator.style.padding = '5px 10px';
-  indicator.style.backgroundColor = isUsingMockData ? '#e74c3c' : '#2ecc71';
-  indicator.style.color = 'white';
-  indicator.style.borderRadius = '4px';
-  indicator.style.fontSize = '0.9rem';
-  indicator.style.zIndex = '1000';
-  indicator.textContent = isUsingMockData ? '⚠️ 使用模擬資料' : '📡 即時 AIS 資料';
+  let indicator = document.querySelector('.data-source-indicator');
+  if (!indicator) {
+    indicator = document.createElement('div');
+    indicator.className = 'data-source-indicator';
+    document.body.appendChild(indicator);
+  }
   
-  // Remove existing indicator if any
-  const existing = document.querySelector('.data-source-indicator');
-  if (existing) existing.remove();
+  indicator.style.cssText = 'position:fixed;bottom:10px;right:10px;padding:6px 12px;background-color:#2c3e50;color:white;border-radius:20px;font-size:0.85rem;z-index:1000;box-shadow:0 2px 8px rgba(0,0,0,0.2);';
   
-  indicator.className = 'data-source-indicator';
-  document.body.appendChild(indicator);
+  const sourceText = isUsingMockData ? '⚠️ 模擬資料' : '📡 Marinesia API';
+  const sourceColor = isUsingMockData ? '#e67e22' : '#27ae60';
+  
+  indicator.innerHTML = `<span style="background:${sourceColor};padding:2px 8px;border-radius:10px;color:white;font-weight:bold;">${sourceText}</span>`;
 }
 
 // UI Helper Functions
