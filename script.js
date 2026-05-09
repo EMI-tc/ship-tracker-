@@ -16,7 +16,17 @@ function initDebug() {
   document.body.appendChild(debugDiv);
 }
 function debugLog(msg) {
-  if (!debugDiv) return;
+  // If debugDiv not ready yet, create it or fall back to console
+  if (!debugDiv) {
+    // Try to create it if body is available
+    if (document.body) {
+      initDebug();
+    } else {
+      // Fallback to console if body not ready (shouldn't happen after DOMContentLoaded)
+      console.log('[DEBUG PRE-INIT]', msg);
+      return;
+    }
+  }
   const now = new Date();
   const time = now.toLocaleTimeString();
   debugDiv.textContent += `[${time}] ${msg}\n`;
@@ -323,7 +333,7 @@ function setupEventListeners() {
 // Initialize
 function init() {
   debugLog('[Init] Starting');
-  initDebug();
+  initDebug(); // MUST be called before any debugLog
   initMap();
   fetchShips();
   fetchPorts();
